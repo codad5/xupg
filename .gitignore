@@ -1,0 +1,5 @@
+dist/
+node_modules
+index.js
+test_zip/
+test.zip
