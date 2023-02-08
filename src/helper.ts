@@ -1,16 +1,18 @@
 import AdmZip from 'adm-zip'
 import { doesNotMatch } from 'assert';
-import { ChildProcess,spawn, spawnSync } from 'child_process';
+import { ChildProcess,execSync,spawn, spawnSync } from 'child_process';
 import { OptionValues } from 'commander';
-import { existsSync, createReadStream, createWriteStream } from 'fs';
+import { existsSync, createReadStream, createWriteStream, readdirSync } from 'fs';
 import { version } from 'os';
 import path from 'path';
 import { exit } from 'process';
 import axios from 'axios';
 import { _Modules } from './types';
 import ProgressBar from 'progress';
+import prompts from 'prompts'
 import download from 'download';
 
+const APP_DIR = path.resolve(process.argv[1])
 // const modules = ['full', 'php', 'phpmyadmin']
 export function getVersion() : string
 {
@@ -31,7 +33,8 @@ export async function getNewZipDetail()
             return {
                 href : res.data.release.url as string,
                 version: res.data.release.date,
-                file_name: res.data.release.filename as string
+                file_name: res.data.release.filename as string,
+                // size:
             }
         }
         return false
@@ -68,12 +71,20 @@ export async function downloadUpdate() : Promise<String>
     // console.log('done downloading')
     return file_name;
 }
+
+function getCache()
+{
+    const dir = readdirSync(APP_DIR+'/download');
+    if(dir.length <= 0) return false;
+    return dir.find(f => f.includes('xampp') && path.extname(f) == '.zip')
+    // return `download/${xampp}`
+}
 function downloadFile(url : string, file_name:string)
 {
     file_name = file_name.replace('.7z', '.zip')
     file_name = path.basename(file_name)
-    console.log(path.resolve('./download/'+file_name))
-    const writeStream = createWriteStream(`./download/${file_name}`)
+    console.log(path.resolve(APP_DIR+'/download/'+file_name))
+    const writeStream = createWriteStream(APP_DIR+`/download/${file_name}`)
     const readStream = download(url)
     readStream.on('response', function (res) {
         const len = parseInt(res.headers['content-length'] ?? '', 10)
@@ -107,7 +118,7 @@ export function extractAndMove(newZipSrc: string, option: { module : _Modules, i
     const zip = new AdmZip(newZipSrc)
     switch (option.module){
         case 'php':
-            finalExtract(zip, "test_zip/2/php/", `${option.install_dir}/php`);
+            finalExtract(zip, "xampp/php/", `${option.install_dir}/php`);
         break;
     }
 }
@@ -117,10 +128,12 @@ function finalExtract(zip: AdmZip, entry:string, to:string)
     if(!entry.endsWith('/')) entry+="/"
     console.log('here', entry)
     zip.getEntries().forEach(element => {
-        // console.log(element.toString())
-        if (element.entryName.startsWith(entry)) {
+        const zip_folder_name = element.entryName.split('/').shift()
+        const entry_n = element.entryName.replace(zip_folder_name+'/', '')
+        // console.log(element.entryName, entry_n)
+        if (entry_n.startsWith(entry)) {
             console.log("================================")
-            let des = entry + element.entryName.replace(entry, '')
+            let des = to + entry_n.replace(entry, '')
             if (element.isDirectory == false) {
                 des = path.dirname(des) + "/";
                 zip.extractEntryTo(element.entryName, des, false, true)
@@ -131,14 +144,34 @@ function finalExtract(zip: AdmZip, entry:string, to:string)
     return true;
 }
 
-export async function updatePHP(path = `${getHomeDir()}/xampp/`)
+export async function updatePHP(path = `${getHomeDir()}/xampp/`, use_cache = false)
 {
     try{
         const p = require('path')
         console.log(p.resolve(path))
-        if(!existsSync(path)) throw new Error(`xampp - php not found in ${path}`);
-        const d = await downloadUpdate();
-        const done = extractAndMove(d as string, { module: 'php', install_dir: path });
+        const php_v = getCurrenctPHPVersion()
+        if(!existsSync(path) || !php_v) throw new Error(`xampp - php not found in ${path}`);
+        console.log("===========================")
+        console.log("Currenct php version => "+php_v)
+        console.log("===========================")
+        let d = use_cache ? getCache() : await downloadUpdate() 
+        console.log(d)
+        if(!d && use_cache) {
+            console.log('no cache found', d)
+            const ask = await prompts({
+                type:"confirm",
+                name:"answer",
+                message:"Do you wanna download it online"
+            })
+            if(ask.answer) {d = await downloadUpdate();}
+            else{console.log('exiting...', exit())}
+        }
+        const done = extractAndMove(`./download/${d}`, { module: 'php', install_dir: path });
+        const n_php_v = getCurrenctPHPVersion()
+        if (!existsSync(path) || !n_php_v) throw new Error(`xampp - php not found in ${path}`);
+        console.log("===========================")
+        console.log("updated php version => " + n_php_v)
+        console.log("===========================")
         return true;
         // .catch(e)
         // return true;
@@ -149,6 +182,19 @@ export async function updatePHP(path = `${getHomeDir()}/xampp/`)
     }
 
 }
+
+function getCurrenctPHPVersion()
+{
+    try {
+        const version = execSync('php -v').toString()
+        const match = version.match(/^PHP\s+(\d+\.\d+\.\d+)/)
+        // console.log(version, match)
+        return match ? match[1] : false
+    } catch (error) {
+        return false;
+    }
+}
+
 
 // export function update(mod: _Modules, options: OptionValues)
 // {
