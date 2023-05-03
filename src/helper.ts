@@ -1,9 +1,6 @@
 import AdmZip from 'adm-zip'
-import { doesNotMatch } from 'assert';
-import { ChildProcess,execSync,spawn, spawnSync } from 'child_process';
-import { OptionValues } from 'commander';
+import { execSync  } from 'child_process';
 import { existsSync, createReadStream, createWriteStream, readdirSync, mkdirSync, unlinkSync } from 'fs';
-import { version } from 'os';
 import path from 'path';
 import { exit } from 'process';
 import axios from 'axios';
@@ -12,12 +9,16 @@ import ProgressBar from 'progress';
 import prompts from 'prompts'
 import download from 'download';
 
-const APP_DIR = path.dirname(process.argv[1])
+/** THIS IS TO GET THE CURRENT VERSION OF THIS TOOL FROM PACKAGE.JSON */
 export function getVersion() : string
 {
     return require('../package.json').version
 }
 
+/**
+ * This is to get the default install path for xampp on different machines
+ * @returns string
+ */
 export function getDefaultXamppDir()
 {
     if (process.platform === 'win32') {
@@ -30,6 +31,10 @@ export function getDefaultXamppDir()
     throw new Error(`Xupg is not avaliable for this platform ${process.platform}`);
 }
 
+/**
+ * To get details about an update about xampp from sourceforge.net
+ * @returns Promise<XamppInfoData | null>
+ */
 export async function getNewZipDetail() : Promise<XamppInfoData | null>
 {
     const res = await axios.get("https://sourceforge.net/projects/xampp/best_release.json")
@@ -45,6 +50,10 @@ export async function getNewZipDetail() : Promise<XamppInfoData | null>
     
 }
 
+/**
+ * This functions download the update zip file from sourceforge.net
+ * @param DownloadData This contains info about the new file to download , like link to file on sourceforge.net
+ */
 export async function downloadUpdate(DownloadData : XamppInfoData) : Promise<String>
 {
     let {href, file_name} = DownloadData
@@ -56,12 +65,15 @@ export async function downloadUpdate(DownloadData : XamppInfoData) : Promise<Str
     return file_name;
 }
 
+/**
+ * This function checks if there is any downloaded xampp zip fiie
+ */
 function getCache() : XamppInfoData|null
 {
     if(!existsSync(path.resolve('./download'))) return null
     const dir = readdirSync(path.resolve('./download'));
     if(dir.length <= 0) return null;
-    let filename = dir.find(f => f.includes('xampp') && path.extname(f) == '.7z') ?? null
+    let filename = dir.find(f => f.includes('xampp') && path.extname(f) == '.zip') ?? null
     const version = (filename?.match(/\d+\.\d+\.\d+/) ?? [''])[0]
     return filename ?{
         href : filename,
@@ -70,13 +82,16 @@ function getCache() : XamppInfoData|null
     } : null
 }
 
+/**
+ * @params
+ */
 function downloadFile(url : string, file_name:string)
 {
     file_name = file_name.replace('.7z', '.zip')
     file_name = path.basename(file_name)
-    console.log(path.resolve(APP_DIR+'/download/'+file_name))
-    if(!existsSync(`${APP_DIR}/download`)) mkdirSync(`${APP_DIR}/download`)
-    const writeStream = createWriteStream(APP_DIR+`/download/${file_name}`)
+    console.log(path.resolve('./download/'+file_name))
+    if(!existsSync(`./download`)) mkdirSync(`./download`)
+    const writeStream = createWriteStream(`./download/${file_name}`)
     const readStream = download(url)
     readStream.on('response', function (res) {
         const len = parseInt(res.headers['content-length'] ?? '', 10)
@@ -95,7 +110,7 @@ function downloadFile(url : string, file_name:string)
             writeStream.end()
         })
         readStream.on('close', () => {
-            unlinkSync(APP_DIR+`/download/${file_name}`)
+            unlinkSync(`./download/${file_name}`)
         })
 
         readStream.on('error', (e) => {
@@ -150,25 +165,45 @@ function getCurrenctPHPVersion()
     }
 }
 
-export async function start(options: InstallOptions, xampp_dir : string, use_cache : boolean){
+function isAnUpdate(old_version: string, new_version: string) : boolean
+{
+    if(old_version == new_version) return false;
+    const oldNumber = Number(old_version.split('.').join());
+    const newNumber = Number(new_version.split('.').join());
+    if(oldNumber >= newNumber) return false
+    return true
+
+}
+
+export async function start(options: InstallOptions, xampp_dir : string, use_cache : boolean) : Promise<any>
+{
     xampp_dir = path.resolve(xampp_dir)
     const php_v = getCurrenctPHPVersion()
-    if(!existsSync(xampp_dir) || !php_v) throw new Error(`xampp - php not found in ${path}`);
+    if(!existsSync(xampp_dir) || !php_v) throw new Error(`xampp - php not found in ${xampp_dir}`);
     let newVersion = getCache()
     if(use_cache && !newVersion) {
         console.log("No cache found")
-        const ask = await prompts({
-            type:"confirm",
-            name:"answer",
-            message:"Do you wanna download it online"
-        })
-        if(ask.answer) newVersion =  await getNewZipDetail()
+        if((await askToDownload()).answer) newVersion =  await getNewZipDetail()
         return false;
     }
     if(!use_cache) newVersion = await getNewZipDetail() ?? newVersion
     if(!newVersion) throw new Error('An error occurred while installing ( cant find new version )');
-    if(newVersion && `${newVersion.version}` == php_v) throw new Error("xampp version uptodate")
+    if(newVersion && !isAnUpdate(php_v, `${newVersion.version}`)){
+        if(use_cache){
+            console.log(`cache version is an older version`)
+            if((await askToDownload()).answer) return start(options, xampp_dir, false)
+        }
+        throw new Error("xampp version uptodate")
+    }
     if(!use_cache) await downloadUpdate(newVersion);
     extractAndMove(path.resolve(`./download/${newVersion.file_name}`), options, xampp_dir)
     return true;
+}
+
+async function askToDownload(){
+    return await prompts({
+            type:"confirm",
+            name:"answer",
+            message:"Do you wanna download it online"
+    })
 }
