@@ -3,6 +3,23 @@
 
 This is a CLI tool using [sourceforge API](https://sourceforge.net/p/forge/documentation/API/) that helps to update the XAMPP modules (PHP, PHPmyadmin,MariaDB) in your machine
 
+### Installation
+```bash 
+npm i -g xupg
+```
+
+### HOw to Use
+
+#### Upgrading php version
+```shell
+xupg -p
+```
+
+#### All Flags 
+- `-p` : TO upgrade PHP 
+- `-ph` : To Upgrade PHPmyadmin
+- `-c` : use local cache
+
 ### Currently upgradeable modules
 - [x] PHP
 - [ ] PHPmyadmin
