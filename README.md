@@ -19,6 +19,7 @@ xupg -p
 - `-p` : TO upgrade PHP 
 - `-ph` : To Upgrade PHPmyadmin
 - `-c` : use local cache
+- `-d <path_to_xampp>` : If not using default xampp path `c:/xampp` for windows
 
 ### Currently upgradeable modules
 - [x] PHP
