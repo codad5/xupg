@@ -27,7 +27,8 @@ async function main(program : Command){
         phpmyadmin: options.phpmyadmin,
         all: options.full || (options.phpmyadmin && options.php)
     }
-
+    // at least one option should be selected
+    if(!toInstall.php && !toInstall.phpmyadmin && !toInstall.all) return program.help()
     return await start(toInstall, options.dir ?? default_xampp_dir, options.cache)
 }
 

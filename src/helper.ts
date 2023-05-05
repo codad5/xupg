@@ -41,7 +41,7 @@ export async function getNewZipDetail() : Promise<XamppInfoData | null>
     if (res.data?.release){
         return {
             href : res.data.release.url as string,
-            version: res.data.release.date,
+            version: res.data.release.filename.match(/\d+\.\d+\.\d+/) as versionNumber,
             file_name: res.data.release.filename as string,
             // size:
         }
