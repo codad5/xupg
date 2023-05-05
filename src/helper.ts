@@ -188,15 +188,15 @@ function getCurrenctPHPVersion() : versionNumber|false
  * @param old_version - The purposed old version
  * @param new_version The purposed new version
  */
-function isAnUpdate(old_version: versionNumber, new_version: versionNumber) : boolean
+export function isAnUpdate(old_version: versionNumber, new_version: versionNumber) : boolean
 {
     if(old_version == new_version) return false;
     //  Since the version number my be in type of 8.2.0 or 8.1.17 converting them to number directly and comparing them maybe ineffincent as 8117 is greater than 820 as a number but if we can add a trailing zero to version string and select the first four digit it would always give us a more effiecent number for comparism 
     // 8.2.0 would be 8200 and 8.1.17 would be 8117 which 8200 is much greater fitting rich for comparism 
-    const oldNumber = Number(`${old_version.split('.').join()}0`.substring(0,4)); 
-    const newNumber = Number(`${new_version.split('.').join()}0`.substring(0,4));
+    const oldNumber = `${old_version.split('.').join('')}0`.substring(0,4); 
+    const newNumber = `${new_version.split('.').join('')}0`.substring(0,4);
     console.log(oldNumber , newNumber)
-    if(oldNumber >= newNumber) return false
+    if(Number(oldNumber) >= Number(newNumber)) return false
     return true
 
 }
