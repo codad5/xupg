@@ -39,7 +39,10 @@ main(program)
     d ? console.log('Ended successfully in') : console.warn('Ended unsucessfully in')
 })
 .catch((e) => {
-    console.log('An error occured : ', (e.message))
+    console.error(e)
+    console.log("=====================================================")
+    console.log("=====================================================")
+    console.log('An error occured : ', e.message)
     console.warn('Ended unsucessfully in')
 })
 .finally(() => {

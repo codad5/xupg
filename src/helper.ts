@@ -130,11 +130,19 @@ function downloadFile(url : string, file_name:string)
         readStream.on('close', () => {
             unlinkSync(`./download/${file_name}`)
         })
-
+        // if process is killed by user, we want to remove the file being written
+        process.on('SIGINT', () => {
+            readStream.destroy()
+            writeStream.end()
+            unlinkSync(`./download/${file_name}`)
+            process.exit()
+        })
         readStream.on('error', (e) => {
             console.error('Error downloading file', e.message)
             console.error(e)
             writeStream.end()
+            // delete the file
+            unlinkSync(`./download/${file_name}`)
             exit(2)
         })
     })
@@ -150,6 +158,7 @@ function downloadFile(url : string, file_name:string)
 export function extractAndMove(newZipSrc: string, option: InstallOptions, install_dir : string)
 {   
     console.log(path.resolve(newZipSrc), install_dir)
+    if(!existsSync(path.resolve(newZipSrc))) throw new Error(`Failed to find ${newZipSrc}`)
     const zip = new AdmZip(newZipSrc)
     if(option.all) return finalExtract(zip, "xampp/", `${install_dir}`);
     if(option.php) finalExtract(zip, "xampp/php/", `${install_dir}/php`);
@@ -225,14 +234,16 @@ export function isAnUpdate(old_version: versionNumber, new_version: versionNumbe
  */
 export async function start(options: InstallOptions, xampp_dir : string, use_cache : boolean) : Promise<any>
 {
+    console.log('Starting update process')
     xampp_dir = path.resolve(xampp_dir)
     const php_v = getCurrenctPHPVersion()
     if(!existsSync(xampp_dir) || !php_v) throw new Error(`xampp - php not found in ${xampp_dir}`);
     let newVersion = getCache()
     if(use_cache && !newVersion) {
         console.log("No cache found")
-        if((await askToDownload()).answer) newVersion =  await getNewZipDetail()
-        return false;
+        if(!(await askToDownload()).answer) return false;
+         newVersion =  await getNewZipDetail()
+         use_cache = false
     }
     if(!use_cache) newVersion = await getNewZipDetail() ?? newVersion
     if(!newVersion) throw new Error('An error occurred while installing ( cant find new version )');
@@ -243,13 +254,12 @@ export async function start(options: InstallOptions, xampp_dir : string, use_cac
     if(!isAnUpdate(php_v, `${newVersion.version}`)){
         if(use_cache){
             console.log(`cache version is an older version`)
-            if((await askToDownload()).answer) return start(options, xampp_dir, false)
+            if((await askToDownload()).answer) return await start(options, xampp_dir, false)
         }
         throw new Error("xampp version uptodate")
     }
     if(!use_cache) await downloadUpdate(newVersion);
-    extractAndMove(path.resolve(`./download/${newVersion.file_name}`), options, xampp_dir)
-    return true;
+    return extractAndMove("download/"+path.basename(`${newVersion.file_name}`), options, xampp_dir)
 }
 
 /**
