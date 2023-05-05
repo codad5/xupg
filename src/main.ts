@@ -48,5 +48,6 @@ main(program)
 .finally(() => {
     console.log(figlet.textSync("XUPG"))
     console.timeEnd('main')
-    
+    console.log(figlet.textSync("Restart XAMPP"))
+    exit(0)
 })
