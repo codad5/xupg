@@ -31,18 +31,34 @@ export function getDefaultXamppDir()
     throw new Error(`Xupg is not avaliable for this platform ${process.platform}`);
 }
 
+export function getOsplatform() : 'mac' | 'linux' | 'windows'
+{
+    if (process.platform === 'win32') {
+        return 'windows'
+    } else if (process.platform === 'linux') {
+        return 'linux'
+    } else if (process.platform === 'darwin') {
+        return 'mac'
+    }
+    throw new Error(`Xupg is not avaliable for this platform ${process.platform}`);
+}
 /**
  * To get details about an update about xampp from sourceforge.net
  * @returns Promise<XamppInfoData | null>
  */
 export async function getNewZipDetail() : Promise<XamppInfoData | null>
 {
+    let os = getOsplatform()
     const res = await axios.get("https://sourceforge.net/projects/xampp/best_release.json")
     if (res.data?.release){
+        const version = res.data.platform_releases[os].filename.match(/\d+\.\d+\.\d+/)?.[0] as versionNumber
+        // for the filename, we need to replace the 7z with zip and also replace any version number with the new version number
+        const file_name = (res.data.release.filename  as String).replace('.7z', '.zip').replace(/\d+\.\d+\.\d+/g, version)
+        const href = (res.data.release.url as String).replace('.7z', '.zip').replace(/\d+\.\d+\.\d+/g, version)
         return {
-            href : res.data.release.url as string,
-            version: res.data.release.filename.match(/\d+\.\d+\.\d+/) as versionNumber,
-            file_name: res.data.release.filename as string,
+            file_name : file_name as string,
+            version: version,
+            href: href as string,
             // size:
         }
     }
@@ -154,9 +170,9 @@ function finalExtract(zip: AdmZip, entry:string, to:string)
         const zip_folder_name = element.entryName.split('/').shift()
         const entry_n = element.entryName.replace(zip_folder_name+'/', '')
         // console.log(element.entryName, entry_n)
-        if (entry_n.startsWith(entry)) {
+        if (element.entryName.startsWith(entry)) {
             console.log("================================")
-            let des = to + entry_n.replace(entry, '')
+            let des = to + element.entryName.replace(entry, '/')
             if (element.isDirectory == false) {
                 des = path.dirname(des) + "/";
                 zip.extractEntryTo(element.entryName, des, false, true)

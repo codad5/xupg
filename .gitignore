@@ -3,4 +3,4 @@ node_modules
 index.js
 test_zip/
 test.zip
-!download/*.zip
+download/*.zip
