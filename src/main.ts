@@ -2,7 +2,7 @@
 
 import { Command } from "commander"
 import { getDefaultXamppDir, getVersion, start } from "./helper";
-// import figlet from 'figlet'
+import figlet from 'figlet'
 import { exit } from "process";
 import { InstallOptions } from "./types";
 
@@ -38,9 +38,11 @@ main(program)
     d ? console.log('Ended successfully in') : console.warn('Ended unsucessfully in')
 })
 .catch((e) => {
-    console.log('An error occured : ', e.message /**figlet.textSync(e.message)**/)
+    console.log('An error occured : ', (e.message))
     console.warn('Ended unsucessfully in')
 })
 .finally(() => {
+    console.log(figlet.textSync("XUPG"))
     console.timeEnd('main')
+    
 })

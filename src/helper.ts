@@ -4,7 +4,7 @@ import { existsSync, createReadStream, createWriteStream, readdirSync, mkdirSync
 import path from 'path';
 import { exit } from 'process';
 import axios from 'axios';
-import { InstallOptions, XamppInfoData, _Modules } from './types';
+import { InstallOptions, XamppInfoData, _Modules, versionNumber } from './types';
 import ProgressBar from 'progress';
 import prompts from 'prompts'
 import download from 'download';
@@ -78,12 +78,14 @@ function getCache() : XamppInfoData|null
     return filename ?{
         href : filename,
         file_name : filename,
-        version: version
+        version: version as versionNumber
     } : null
 }
 
 /**
- * @params
+ * This donwloads the new zip file from Sourceforge.net 
+ * @param url - Sourceforge Link to file 
+ * @param file_name Name to save the file as 
  */
 function downloadFile(url : string, file_name:string)
 {
@@ -123,6 +125,12 @@ function downloadFile(url : string, file_name:string)
     return readStream
 }
 
+/**
+ * This prepares the new Zip file to be extrated and How it should be extracted
+ * @param newZipSrc - path/filename of new Zip file to be extracted 
+ * @param option This tell the program what module should be updated from the zip file 
+ * @param install_dir The xampp installation directory
+ */
 export function extractAndMove(newZipSrc: string, option: InstallOptions, install_dir : string)
 {   
     console.log(path.resolve(newZipSrc), install_dir)
@@ -132,6 +140,12 @@ export function extractAndMove(newZipSrc: string, option: InstallOptions, instal
     if(option.phpmyadmin) finalExtract(zip, "xampp/phpmyadmin/", `${install_dir}/phpmyadmin`);
 }
 
+/**
+ * This does the whole extraction process
+ * @param zip - THe zip file object
+ * @param entry - Where should be extracted from the zip
+ * @param to - Path to extract to
+ */
 function finalExtract(zip: AdmZip, entry:string, to:string)
 {
     if(!entry.endsWith('/')) entry+="/"
@@ -153,28 +167,46 @@ function finalExtract(zip: AdmZip, entry:string, to:string)
     return true;
 }
 
-function getCurrenctPHPVersion()
+/**
+ * Get current PHP version from the cli
+ */
+function getCurrenctPHPVersion() : versionNumber|false
 {
     try {
         const version = execSync('php -v').toString()
         const match = version.match(/^PHP\s+(\d+\.\d+\.\d+)/)
         // console.log(version, match)
-        return match ? match[1] : false
+        return match ? match[1] as versionNumber : false
     } catch (error) {
         return false;
     }
 }
 
-function isAnUpdate(old_version: string, new_version: string) : boolean
+
+/**
+ * Compares two version number
+ * @param old_version - The purposed old version
+ * @param new_version The purposed new version
+ */
+function isAnUpdate(old_version: versionNumber, new_version: versionNumber) : boolean
 {
     if(old_version == new_version) return false;
-    const oldNumber = Number(old_version.split('.').join());
-    const newNumber = Number(new_version.split('.').join());
+    //  Since the version number my be in type of 8.2.0 or 8.1.17 converting them to number directly and comparing them maybe ineffincent as 8117 is greater than 820 as a number but if we can add a trailing zero to version string and select the first four digit it would always give us a more effiecent number for comparism 
+    // 8.2.0 would be 8200 and 8.1.17 would be 8117 which 8200 is much greater fitting rich for comparism 
+    const oldNumber = Number(`${old_version.split('.').join()}0`.substring(0,4)); 
+    const newNumber = Number(`${new_version.split('.').join()}0`.substring(0,4));
+    console.log(oldNumber , newNumber)
     if(oldNumber >= newNumber) return false
     return true
 
 }
 
+/**
+ * The main starting process
+ * @param options - flags / options passed in 
+ * @param xampp_dir - xampp installation directory
+ * @param use_cache - Determine if a cache download should be used 
+ */
 export async function start(options: InstallOptions, xampp_dir : string, use_cache : boolean) : Promise<any>
 {
     xampp_dir = path.resolve(xampp_dir)
@@ -188,7 +220,11 @@ export async function start(options: InstallOptions, xampp_dir : string, use_cac
     }
     if(!use_cache) newVersion = await getNewZipDetail() ?? newVersion
     if(!newVersion) throw new Error('An error occurred while installing ( cant find new version )');
-    if(newVersion && !isAnUpdate(php_v, `${newVersion.version}`)){
+    console.log("====================================")
+    console.log(`Current Xampp-php version : ${php_v}`)
+    console.log(`Xampp-php version found : ${newVersion.version}`)
+    console.log("====================================")
+    if(!isAnUpdate(php_v, `${newVersion.version}`)){
         if(use_cache){
             console.log(`cache version is an older version`)
             if((await askToDownload()).answer) return start(options, xampp_dir, false)
@@ -200,6 +236,9 @@ export async function start(options: InstallOptions, xampp_dir : string, use_cac
     return true;
 }
 
+/**
+ * Prompt a user asking if to download from sourceforge 
+ */
 async function askToDownload(){
     return await prompts({
             type:"confirm",

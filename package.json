@@ -1,21 +1,41 @@
 {
   "name": "xupg",
   "version": "1.0.0",
-  "description": "",
+  "description": "This is a cli tool that helps to upgrade your xampp PHP version to the latest version",
   "main": "dist/main.js",
   "bin": {
     "xupg": "./dist/main.js"
   },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "download"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc"
+    "build": "tsc",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run test"
+
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "XAMPP",
+    "PHP", 
+    "PHPMYADMIN",
+    "CLI"
+  ],
+  "homepage": "https://github.com/Codad5/xupg",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Codad5/xupg"
+  },
+  "author": "Chibueze Aniezeofor (codad5)",
   "license": "ISC",
   "dependencies": {
     "adm-zip": "^0.5.10",
     "axios": "^1.3.2",
+    "chalk": "^5.2.0",
     "commander": "^10.0.0",
     "download": "^8.0.0",
     "figlet": "^1.6.0",
