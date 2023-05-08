@@ -5,7 +5,6 @@ import { getDefaultXamppDir, getVersion, start } from "./helper";
 import figlet from 'figlet'
 import { exit } from "process";
 import { InstallOptions } from "./types";
-
 const program = (new Command)
 .name("xupg (upgrade your xampp php version")
 .version(getVersion())
@@ -13,6 +12,7 @@ const program = (new Command)
 .option("-p, --php", "Upgrade current php version")
 .option('-ph, --phpmyadmin', "upgrade phpmyadmin")
 .option('-c, --cache', "Use cache")
+.option('-ms, --mysql', "Upgrade mysql version")
 .option('-f, --full', "Upgrade full php version")
 .option('-d, --dir <value>', "Select your xampp installation directory")
 .parse(process.argv)
@@ -25,10 +25,11 @@ async function main(program : Command){
     const toInstall : InstallOptions = {
         php : options.php,
         phpmyadmin: options.phpmyadmin,
-        all: options.full || (options.phpmyadmin && options.php)
+        mysql : options.mysql,
+        all: options.full || (options.phpmyadmin && options.php && options.mysql)
     }
     // at least one option should be selected
-    if(!toInstall.php && !toInstall.phpmyadmin && !toInstall.all) return program.help()
+    if(!toInstall.php && !toInstall.phpmyadmin && !toInstall.mysql && !toInstall.all) return program.help()
     return await start(toInstall, options.dir ?? default_xampp_dir, options.cache)
 }
 

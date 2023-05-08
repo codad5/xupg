@@ -2,7 +2,7 @@ export type _Modules = 'full' | 'php'
 export type InstallOptions = {
     php : boolean,
     phpmyadmin: boolean,
-    // mysql: boolean,
+    mysql: boolean,
     all:boolean
 } 
 

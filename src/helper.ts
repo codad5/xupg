@@ -163,6 +163,13 @@ export function extractAndMove(newZipSrc: string, option: InstallOptions, instal
     if(option.all) return finalExtract(zip, "xampp/", `${install_dir}`);
     if(option.php) finalExtract(zip, "xampp/php/", `${install_dir}/php`);
     if(option.phpmyadmin) finalExtract(zip, "xampp/phpmyadmin/", `${install_dir}/phpmyadmin`);
+    // if(option.mysql)
+    return true;
+}
+
+// export function BackupAndUpgradeMysql(zip, entry = 'xampp/mysql/', install_dir)
+{
+
 }
 
 /**
@@ -171,7 +178,7 @@ export function extractAndMove(newZipSrc: string, option: InstallOptions, instal
  * @param entry - Where should be extracted from the zip
  * @param to - Path to extract to
  */
-function finalExtract(zip: AdmZip, entry:string, to:string)
+function finalExtract(zip: AdmZip, entry:string, to:string) : true
 {
     if(!entry.endsWith('/')) entry+="/"
     console.log('updating', entry)
@@ -232,7 +239,7 @@ export function isAnUpdate(old_version: versionNumber, new_version: versionNumbe
  * @param xampp_dir - xampp installation directory
  * @param use_cache - Determine if a cache download should be used 
  */
-export async function start(options: InstallOptions, xampp_dir : string, use_cache : boolean) : Promise<any>
+export async function start(options: InstallOptions, xampp_dir : string, use_cache : boolean) : Promise<boolean>
 {
     console.log('Starting update process')
     xampp_dir = path.resolve(xampp_dir)
