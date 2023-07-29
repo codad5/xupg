@@ -10,7 +10,7 @@
     "dist",
     "LICENSE",
     "README.md",
-    "download"
+    "download/"
   ],
   "scripts": {
     "test": "jest",

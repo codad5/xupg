@@ -49,18 +49,22 @@ export function getOsplatform() : 'mac' | 'linux' | 'windows'
 export async function getNewZipDetail() : Promise<XamppInfoData | null>
 {
     let os = getOsplatform()
-    const res = await axios.get("https://sourceforge.net/projects/xampp/best_release.json")
-    if (res.data?.release){
-        const version = res.data.platform_releases[os].filename.match(/\d+\.\d+\.\d+/)?.[0] as versionNumber
-        // for the filename, we need to replace the 7z with zip and also replace any version number with the new version number
-        const file_name = (res.data.release.filename  as String).replace('.7z', '.zip').replace(/\d+\.\d+\.\d+/g, version)
-        const href = (res.data.release.url as String).replace('.7z', '.zip').replace(/\d+\.\d+\.\d+/g, version)
-        return {
-            file_name : file_name as string,
-            version: version,
-            href: href as string,
-            // size:
+    try{
+        const res = await axios.get("https://sourceforge.net/projects/xampp/best_release.json")
+        if (res.data?.release){
+            const version = res.data.platform_releases[os].filename.match(/\d+\.\d+\.\d+/)?.[0] as versionNumber
+            // for the filename, we need to replace the 7z with zip and also replace any version number with the new version number
+            const file_name = (res.data.release.filename  as String).replace('.7z', '.zip').replace(/\d+\.\d+\.\d+/g, version)
+            const href = (res.data.release.url as String).replace('.7z', '.zip').replace(/\d+\.\d+\.\d+/g, version)
+            return {
+                file_name : file_name as string,
+                version: version,
+                href: href as string,
+                // size:
+            }
         }
+    }catch(e){
+        throw new Error((e as Error).message)
     }
     return null
     
@@ -259,12 +263,14 @@ export async function start(options: InstallOptions, xampp_dir : string, use_cac
     console.log(`Xampp-php version found : ${newVersion.version}`)
     console.log("====================================")
     if(!isAnUpdate(php_v, `${newVersion.version}`)){
+        console.log("xampp up-to-date")
         if(use_cache){
             console.log(`cache version is an older version`)
             if((await askToDownload()).answer) return await start(options, xampp_dir, false)
         }
-        throw new Error("xampp version uptodate")
+        if (!await askToDownload(`Do you still wanna Install version { ${newVersion.version} }`)) throw new Error("xampp version uptodate")
     }
+    if(!await askToDownload(`Are you sure you wanna install PHP version ${newVersion.version}`)) return false;
     if(!use_cache) await downloadUpdate(newVersion);
     return extractAndMove("download/"+path.basename(`${newVersion.file_name}`), options, xampp_dir)
 }
@@ -272,10 +278,10 @@ export async function start(options: InstallOptions, xampp_dir : string, use_cac
 /**
  * Prompt a user asking if to download from sourceforge 
  */
-async function askToDownload(){
+async function askToDownload(message ?: string){
     return await prompts({
             type:"confirm",
             name:"answer",
-            message:"Do you wanna download it online"
+            message:message ?? "Do you wanna download it online"
     })
 }

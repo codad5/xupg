@@ -37,7 +37,10 @@ async function main(program : Command){
 console.time('main')
 main(program)
 .then((d) => {
-    d ? console.log('Ended successfully in') : console.warn('Ended unsucessfully in')
+    if(!d) throw new Error("Something went wrong");
+    console.log('Ended successfully in')
+    console.log(figlet.textSync("Restart XAMPP"))
+    
 })
 .catch((e) => {
     console.error(e)
@@ -49,6 +52,5 @@ main(program)
 .finally(() => {
     console.log(figlet.textSync("XUPG"))
     console.timeEnd('main')
-    console.log(figlet.textSync("Restart XAMPP"))
     exit(0)
 })
