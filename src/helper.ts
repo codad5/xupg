@@ -268,9 +268,9 @@ export async function start(options: InstallOptions, xampp_dir : string, use_cac
             console.log(`cache version is an older version`)
             if((await askToDownload()).answer) return await start(options, xampp_dir, false)
         }
-        if (!await askToDownload(`Do you still wanna Install version { ${newVersion.version} }`)) throw new Error("xampp version uptodate")
+        if (!(await askToDownload(`Do you still wanna Install version { ${newVersion.version} }`)).answer) throw new Error("xampp version uptodate")
     }
-    if(!await askToDownload(`Are you sure you wanna install PHP version ${newVersion.version}`)) return false;
+    if(!(await askToDownload(`Are you sure you wanna install PHP version ${newVersion.version}`)).answer) return false;
     if(!use_cache) await downloadUpdate(newVersion);
     return extractAndMove("download/"+path.basename(`${newVersion.file_name}`), options, xampp_dir)
 }

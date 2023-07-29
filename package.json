@@ -1,6 +1,6 @@
 {
   "name": "xupg",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "This is a cli tool that helps to upgrade your xampp PHP version to the latest version",
   "main": "dist/main.js",
   "bin": {
